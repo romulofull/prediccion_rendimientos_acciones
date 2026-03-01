@@ -1,127 +1,199 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib  
+import joblib
+import plotly.graph_objects as go
 
+# ---------------------------------------------------
+# CONFIGURACIÓN GENERAL
+# ---------------------------------------------------
 
 st.set_page_config(
-    page_title="Predicción de Rendimiento de Acciones",
-    layout="wide"
+    page_title="Sistema de Proyección Financiera",
+    layout="wide",
 )
-st.markdown("""
-<style>
-/* Number inputs más compactos */
-div[data-testid="stNumberInput"] {
-    max-width: 370px;
-}
-</style>
-""", unsafe_allow_html=True)
+
+# ---------------------------------------------------
+# ESTILO ULTRA COMPACTO – HEDGE FUND STYLE
+# ---------------------------------------------------
 
 st.markdown("""
 <style>
-
-/* Tipografía general */
-html, body, [class*="css"]  {
-    font-size: 17px;
+.stDivider {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
 }
 
+div[data-testid="stVerticalBlock"] {
+    gap: 0.5rem !important;
+}            
+/* ===== FONDO GENERAL ===== */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0b1220, #111827);
+}
+
+/* ===== CONTENEDOR PRINCIPAL ULTRA COMPACTO ===== */
+.block-container {
+    max-width: 1300px;
+    margin: 10px auto;
+    padding: 25px 40px 35px 40px;
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 18px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+}
+
+/* ===== OCULTAR ELEMENTOS STREAMLIT ===== */
+header {visibility: hidden;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* ===== TÍTULO ===== */
 h1 {
-    font-size: 60px !important;
+    text-align: center;
+    font-size: 48px !important;
+    margin-top: -10px !important;
+    margin-bottom: 0px !important;
+    color: #1e293b;
+    font-weight: 700;
 }
-h2 {
-    font-size: 50px !important;
-}
+
+/* ===== SUBTÍTULO ===== */
 h3 {
-    font-size: 32px !important;
+    margin-top: 0px !important;
+    margin-bottom: 5px !important;
+    font-size: 40px !important;
+    font-weight: 600;
+}
+            
+      
+
+
+/* ===== INPUTS COMPACTOS ===== */
+div[data-baseweb="input"] {
+    height: 38px;
 }
 
-section[data-testid="stSidebar"] {
-    width: 360px !important;
+label {
+    font-size: 26px !important;
+    font-weight: 600 !important;
 }
-section[data-testid="stSidebar"] > div {
-    padding-top: 70px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+div[data-testid="stNumberInput"] p {
+    font-size: 17px !important;
+    font-weight: 700 !important;
 }
-section[data-testid="stSidebar"] input {
-    max-width: 260px;
+span {
+    font-size: 18px !important;
+}
+
+/* ===== BOTÓN ===== */
+div.stButton > button {
+    width: 100%;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 700;
     border-radius: 8px;
-    padding: 6px;
+    background-color: #0f172a;
+    color: white;
+    border: none;
+    transition: 0.2s ease;
+    margin-bottom: 5px !important;
 }
 
+div.stButton > button:hover {
+    background-color: #1e293b;
+}
 
-table {
-    font-size: 55px;
+/* ===== RENDIMIENTO ===== */
+.rendimiento-boton {
+    margin-top: 10px;
+    padding: 14px 30px;
+    font-size: 30px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: white;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* ===== ANALYSIS BOX ===== */
+.analysis-box {
+    margin-top:10px;
+    padding:14px;
+    border-radius:10px;
+    background: #0f172a;
+    color:white;
+    text-align:center;
+    font-size:15px;
+}
+
+/* ===== ESCENARIOS ===== */
+.escenario-alcista {
+    margin-top: 15px;
+    padding: 16px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #065f46, #047857);
+    color: white;
+    font-size: 26px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.escenario-bajista {
+    margin-top: 15px;
+    padding: 16px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+    color: white;
+    font-size: 26px;
+    font-weight: 700;
+    text-align: center;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------------------------------------------
+# TÍTULO
+# ---------------------------------------------------
 
-st.markdown(
-    "<h1 style='text-align:center;'>Modelo de Retornos de Precios de Acciones</h1>",
-    unsafe_allow_html=True
-)
+st.markdown("<h1>📊 Modelo de Predicción de Rendimientos de Acciones </h1>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:left; font-size:25px; margin-top:-5px;'>Modelo con Factores Macroeconómicos</div>", unsafe_allow_html=True)
+st.divider()
 
+# ---------------------------------------------------
+# INPUTS
+# ---------------------------------------------------
 
-st.markdown("""
-<div style="margin-top:30px;">
-  <h2>📌 Descripción del proyecto</h2>
-  <ul>
-    <li><b>Objetivo</b>: Proyectar el rendimiento diario del precio de cierre de una acción.</li>
-    <li><b>Metodología</b>: Enfoque multifactorial que integra información de precios, volumen, commodities y variables macroeconómicas.</li>
-  </ul>
-</div>
-<div style="margin-top:30px;">
-<h2>🧠 Variables utilizadas por el modelo</h2>
-<ul>
-  <li>📈 <b>Ret_precio_apertura</b>: Rendimiento porcentual diario del precio de apertura.</li>
-  <li>📊 <b>Ret_precio_maximo</b>: Rendimiento porcentual del precio máximo del día anterior.</li>
-  <li>📉 <b>Ret_precio_minimo</b>: Rendimiento porcentual del precio mínimo del día anterior.</li>
-  <li>🔄 <b>Ret_volumen</b>: Variación logarítmica diaria del volumen transado (rezago de un día).</li>
-  <li>🌍 <b>Sp500</b>: Rendimiento porcentual diario del índice S&P 500 (rezago de un día).</li>
-  <li>🛢️ <b>Ret_petroleo_usd</b>: Rendimiento porcentual diario del precio del petróleo (rezago de un día).</li>
-  <li>🏦 <b>D_tasa_tesoro_10y</b>: Variación diaria de la tasa del Tesoro de EE. UU. a 10 años (rezago de un día).</li>
-  <li>🔩 <b>Ret_cobre_usd</b>: Rendimiento porcentual diario del precio del cobre (rezago de un día).</li>
-  <li>🏦 <b>D_tasa_tesoro_3m</b>: Variación diaria de la tasa del Tesoro de EE. UU. a 3 meses (rezago de un día).</li>
-  <li>🌏 <b>Ret_usd_yuan</b>: Rendimiento diario del tipo de cambio USD/CHINA. expectativas sobre comercio global y cadenas de suministro (rezago de un día).</li>
- </div>
-</ul>
-""", unsafe_allow_html=True)
+st.markdown("<h3>📥 Simulación de Escenario</h3>", unsafe_allow_html=True)
 
-st.markdown("""
-<div style="margin-top:20px;">
-  <h2>📥 Simulación de escenario de mercado</h2>
-</div>
-""", unsafe_allow_html=True)
-
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    ret_precio_apertura = st.number_input("Δ% Precio Apertura (hoy)", 0.0, step=0.01)
-    ret_precio_maximo   = st.number_input("Δ% Precio Máximo (ayer)", 0.0, step=0.01)
-    ret_precio_minimo   = st.number_input("Δ% Precio Mínimo (ayer)", 0.0, step=0.01)
+    ret_precio_apertura = st.number_input("Δ% Precio Apertura", 0.0, step=0.01)
+    ret_volumen = st.number_input("Δ Volumen", 0.0, step=0.01)
 
 with col2:
-    ret_volumen = st.number_input("Δ Volumen (ayer)", 0.0, step=0.01)
-    sp500       = st.number_input("Δ% S&P 500 (ayer)", 0.0, step=0.01)
-    ret_petroleo_usd = st.number_input("Δ% Petróleo (ayer)", 0.0, step=0.01)
+    ret_precio_maximo = st.number_input("Δ% Precio Máximo", 0.0, step=0.01)
+    sp500 = st.number_input("Δ% S&P 500", 0.0, step=0.01)
 
 with col3:
-    d_tasa_tesoro_10y = st.number_input("Δ Tasa Tesoro 10Y (ayer)", 0.0, step=0.01)
-    ret_cobre_usd     = st.number_input("Δ% Cobre (ayer)", 0.0, step=0.01)
+    ret_precio_minimo = st.number_input("Δ% Precio Mínimo", 0.0, step=0.01)
+    ret_petroleo_usd = st.number_input("Δ% Petróleo", 0.0, step=0.01)
 
 with col4:
-    d_tasa_tesoro_3m = st.number_input("Δ Tasa Tesoro 3M (ayer)", 0.0, step=0.01)
-    ret_usd_yuan     = st.number_input("Δ% USD/Yuan (ayer)", 0.0, step=0.01)
+    d_tasa_tesoro_10y = st.number_input("Δ Tasa 10Y", 0.0, step=0.01)
+    ret_cobre_usd = st.number_input("Δ% Cobre", 0.0, step=0.01)
 
+with col5:
+    d_tasa_tesoro_3m = st.number_input("Δ Tasa 3M", 0.0, step=0.01)
+    ret_usd_yuan = st.number_input("Δ% USD/YUAN", 0.0, step=0.01)
+
+# Transformación volumen
 if ret_volumen <= -1:
-    st.warning("El cambio porcentual de volumen no puede ser menor o igual a -100%.")
+    st.warning("El cambio en volumen no puede ser ≤ -100%.")
     log_volumen = np.nan
 else:
     log_volumen = np.log1p(ret_volumen)
-
 
 input_data = pd.DataFrame({
     'ret_precio_apertura': [ret_precio_apertura],
@@ -136,48 +208,66 @@ input_data = pd.DataFrame({
     'ret_usd_yuan': [ret_usd_yuan]
 })
 
+# ---------------------------------------------------
+# CARGAR MODELO
+# ---------------------------------------------------
 
-tabla_escenario = pd.DataFrame({
-    "Δ% Precio Apertura (hoy)": [ret_precio_apertura],
-    "Δ% Precio Máximo (ayer)": [ret_precio_maximo],
-    "Δ% Precio Mínimo (ayer)": [ret_precio_minimo],
-    "Δ Log Volumen (ayer)": [log_volumen],  
-    "Δ% S&P 500 (ayer)": [sp500],
-    "Δ% Petróleo (ayer)": [ret_petroleo_usd],
-    "Δ Tasa Tesoro 10Y (ayer)": [d_tasa_tesoro_10y],
-    "Δ% Cobre (ayer)": [ret_cobre_usd],
-    "Δ Tasa Tesoro 3M (ayer)": [d_tasa_tesoro_3m],
-    "Δ% USD/Yuan (ayer)": [ret_usd_yuan]
-}).round(4)  
-
-st.markdown(
-    "<h2 style='margin-top:30px;'>📋 Escenario de mercado utilizado por el modelo</h2>",
-    unsafe_allow_html=True
-)
-st.dataframe(tabla_escenario, use_container_width=True, hide_index=True)
 try:
     data = joblib.load("modelo_rendimientos_catboost.pkl")
     model = data["model"]
-    st.markdown("""
-    <div style="padding:16px; border-radius:10px; background-color:#e8f5e9;
-    color:#1b5e20; font-size:18px; font-weight:600;">
-    ✅ Modelo cargado 
-    </div>
-    """, unsafe_allow_html=True)
-except FileNotFoundError:
-    st.error("No se encontró el archivo del modelo.")
+except:
+    st.error("❌ Modelo no encontrado")
     model = None
-    
-resultado = st.empty()
+
+# ---------------------------------------------------
+# PREDICCIÓN
+# ---------------------------------------------------
+
 if model is not None and not input_data['ret_volumen'].isna().any():
+
     input_data = input_data[model.feature_names_]
-    resultado_placeholder = st.empty()
-    st.markdown(""" <style> div.stButton > button { width: 100%; height: 3.2em; font-size: 18px; font-weight: 600; border-radius: 10px; background-color: green; color: white; border: none; } div.stButton > button:hover { background-color: #198754; } </style> """, unsafe_allow_html=True)
 
-    if st.button("📊 Ejecutar predicción"):
+    if st.button("🚀 Ejecutar Predicción"):
+
         prediccion = model.predict(input_data)
+        retorno = prediccion[0] * 100
 
-        resultado_placeholder.metric(
-            label="📌 Rendimiento esperado de la acción",
-            value=f"{prediccion[0] * 100:.2f} %"
-        )
+        st.divider()
+        st.markdown("<div style='margin-top:0px; margin-bottom:5px; font-size:28px; font-weight:600;'>📌 Resultado del Modelo</div>", unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="text-align:center; font-size: 50px;">
+            <div class="rendimiento-boton">
+                Rendimiento Esperado: {retorno:.2f}%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        fig = go.Figure(go.Indicator( 
+            mode="gauge+number", 
+            value=retorno, 
+            title={'text': "Rendimiento Diario Esperado (%)"}, 
+            gauge={ 'axis': {'range': [-5, 5]}, 
+            'bar': {'color': "#22c55e" if retorno > 0 else "#ef4444"}, 
+            'steps': [ 
+                {'range': [-5, 0], 'color': "#3f1d1d"}, 
+                {'range': [0, 5], 'color': "#0f3d2e"} ], } )) 
+        fig.update_layout(template="plotly_dark", height=220, margin=dict(l=10, r=10, t=30, b=10)) 
+        st.plotly_chart(fig, use_container_width=True)
+
+    
+
+        if retorno > 0:
+            st.markdown("""
+            <div class="escenario-alcista">
+                📈 Recomendación de Asignación: POSICIÓN LARGA RECOMENDADA
+            </div>
+            """, unsafe_allow_html=True)
+        elif retorno < 0:
+            st.markdown("""
+            <div class="escenario-bajista">
+                📉 MODO PRESERVACIÓN DE CAPITAL: EVITAR ENTRADA
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("Señal de Mercado Neutral")
